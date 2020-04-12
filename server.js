@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const todos = [];
+const _ = require('underscore');
 let todoNextId = 1;
 
 app.use(bodyParser.json());
@@ -19,10 +20,12 @@ app.get('/todos', (req, res) => {
 
 // GET todo/:id
 app.get('/todos/:id', (req, res) => {
-  const matchedTodo = todos.filter( todo => parseInt(req.params.id) === todo.id);
+  // const matchedTodo = todos.filter( todo =>  parseInt(req.params.id) === todo.id);
+  const todoId = parseInt(req.params.id);
+  const matchedTodo = _.findWhere(todos, {id: todoId});
     
-  if (matchedTodo[0]) {
-    res.json(matchedTodo[0]);
+  if (matchedTodo) {
+    res.json(matchedTodo);
   } else {
     res.status(404).send('No todo found with that ID');
   }
@@ -30,9 +33,18 @@ app.get('/todos/:id', (req, res) => {
 
 // POST /todos
 app.post('/todos', (req, res) => {
-  const body = req.body;
-  console.log('description: ' + body.description);
+  const body = _.pick(req.body, 'completed', 'description');
+
+  const hasCompleted = _.isBoolean(body.completed);
+  const hasDescription = _.isString(body.description);
+  const blankDescription = body.description.trim().length === 0;
+
+  if (!hasCompleted || !hasDescription || blankDescription) {
+    return res.status(400).send();
+  }
+
   body.id = todoNextId++;
+  body.description = body.description.trim();
   todos.push(body);
   res.json(body);
 });
