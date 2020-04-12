@@ -1,9 +1,9 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const _ = require('underscore');
 const app = express();
 const PORT = process.env.PORT || 3000;
-const todos = [];
-const _ = require('underscore');
+let todos = [];
 let todoNextId = 1;
 
 app.use(bodyParser.json());
@@ -47,6 +47,21 @@ app.post('/todos', (req, res) => {
   body.description = body.description.trim();
   todos.push(body);
   res.json(body);
+});
+
+// DELETE /todos/:id
+app.delete('/todos/:id', (req, res) => {
+  const todoId = parseInt(req.params.id);
+  const matchedTodo = _.findWhere(todos, {id: todoId});
+    
+  if (matchedTodo) {
+    todos = _.without(todos, matchedTodo);
+    res.json('Deleted todo with ID: ' + todoId);
+  } else {
+    res.status(404).json(
+      {"Error":'Could not delete todo, because no todo exists with that ID'}
+    );
+  }
 });
 
 app.listen(PORT, () => {
