@@ -15,7 +15,7 @@ let todos = [
       "id": 2
   },
   {
-      "completed": false,
+      "completed": true,
       "description": "1244432311",
       "id": 3
   }
@@ -31,7 +31,19 @@ app.get('/', (req, res) => {
 
 // GET /todos
 app.get('/todos', (req, res) => {
-  res.json(todos);
+  const queryParams = req.query;
+  let filteredTodos = todos;
+
+  if (queryParams.hasOwnProperty('completed')) {
+    const completedBool = queryParams.completed === 'true' ? true : false;
+    const todosFound = _.where(todos, { completed: completedBool });
+
+    if (todosFound.length > 0) {
+      filteredTodos = todosFound;
+    }
+  } 
+
+  res.json(filteredTodos);
 });
 
 // GET todo/:id
