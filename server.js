@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const _ = require('underscore');
+const db = require('./db.js');
 const app = express();
 const PORT = process.env.PORT || 3000;
 let todos = [
@@ -68,17 +69,21 @@ app.post('/todos', (req, res) => {
   const completedIsBool = _.isBoolean(body.completed);
   const hasDescription = _.isString(body.description);
   const blankDescription = body.description.trim().length === 0;
+  let highestId = _.sortBy(todos, 'id')[todos.length - 1].id + 1;
 
   if (!completedIsBool || !hasDescription || blankDescription) {
     return res.status(400).send();
   }
 
-  let highestId = _.sortBy(todos, 'id')[todos.length - 1].id + 1;
-  
   body.id = highestId;
   body.description = body.description.trim();
-  todos.push(body);
-  res.json(body);
+
+  // Send to the DB with sequelize
+  db.todo.create(body).then(todo => {
+    res.json(todo.toJSON());
+  }, error => {
+    res.status(400).json(error);
+  });
 });
 
 // DELETE /todos/:id
@@ -138,4 +143,8 @@ app.put('/todos/:id', (req, res) => {
 
 });
 
-app.listen(PORT, () => {});
+db.sequelize.sync().then(() => {
+  app.listen(PORT, () => {
+    console.log('Express listening on port ' + PORT + '!');
+  });
+})
