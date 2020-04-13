@@ -69,13 +69,13 @@ app.post('/todos', (req, res) => {
   const completedIsBool = _.isBoolean(body.completed);
   const hasDescription = _.isString(body.description);
   const blankDescription = body.description.trim().length === 0;
-  let highestId = _.sortBy(todos, 'id')[todos.length - 1].id + 1;
+  // let highestId = _.sortBy(todos, 'id')[todos.length - 1].id + 1;
 
   if (!completedIsBool || !hasDescription || blankDescription) {
     return res.status(400).send();
   }
 
-  body.id = highestId;
+  // body.id = highestId;
   body.description = body.description.trim();
 
   // Send to the DB with sequelize
