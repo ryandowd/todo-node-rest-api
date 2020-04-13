@@ -20,7 +20,6 @@ let todos = [
       "id": 3
   }
 ];
-let todoNextId = 1;
 
 app.use(bodyParser.json());
 
@@ -29,19 +28,23 @@ app.get('/', (req, res) => {
   res.send('TODO API ROOT');
 });
 
-// GET /todos
+// GET /todos?completed=boolean&q=work
 app.get('/todos', (req, res) => {
   const queryParams = req.query;
   let filteredTodos = todos;
 
   if (queryParams.hasOwnProperty('completed')) {
     const completedBool = queryParams.completed === 'true' ? true : false;
-    const todosFound = _.where(todos, { completed: completedBool });
-
-    if (todosFound.length > 0) {
-      filteredTodos = todosFound;
-    }
+    filteredTodos = _.where(todos, { completed: completedBool });
   } 
+
+  if (queryParams.hasOwnProperty('q') && queryParams.q.length > 0) {
+    filteredTodos = _.filter(filteredTodos, todo => {
+      const descr = todo.description.toLowerCase();
+      const paramDescr = queryParams.q.trim().toLowerCase();
+      return descr.indexOf(paramDescr) > -1;
+    });
+  }
 
   res.json(filteredTodos);
 });
@@ -70,7 +73,9 @@ app.post('/todos', (req, res) => {
     return res.status(400).send();
   }
 
-  body.id = todoNextId++;
+  let highestId = _.sortBy(todos, 'id')[todos.length - 1].id + 1;
+  
+  body.id = highestId;
   body.description = body.description.trim();
   todos.push(body);
   res.json(body);
