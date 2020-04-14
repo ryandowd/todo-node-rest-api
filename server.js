@@ -31,24 +31,50 @@ app.get('/', (req, res) => {
 
 // GET /todos?completed=boolean&q=work
 app.get('/todos', (req, res) => {
-  const queryParams = req.query;
-  let filteredTodos = todos;
+  const query = req.query;
+  let whereObj = {};
 
-  if (queryParams.hasOwnProperty('completed')) {
-    const completedBool = queryParams.completed === 'true' ? true : false;
-    filteredTodos = _.where(todos, { completed: completedBool });
+  if (query.hasOwnProperty('completed')) {
+    const completedBool = query.completed === 'true' ? true : false;
+    whereObj.completed = completedBool;
   }
 
-  if (queryParams.hasOwnProperty('q') && queryParams.q.length > 0) {
-    filteredTodos = _.filter(filteredTodos, todo => {
-      const descr = todo.description.toLowerCase();
-      const paramDescr = queryParams.q.trim().toLowerCase();
-      return descr.indexOf(paramDescr) > -1;
-    });
+  if (query.hasOwnProperty('q') && query.q.length > 0) {
+    whereObj.description = {
+      $like: '%' + query.q.trim() + '%'
+    }
   }
 
-  res.json(filteredTodos);
+  db.todo.findAll({ where: whereObj }).then(todos => {
+    res.json(todos);
+  }, error => {
+    res.status(500).json(
+      { "Error": 'Could not find a matching todo' }
+    );
+  });
 });
+
+// OLD GET using underscore
+// // GET /todos?completed=boolean&q=work
+// app.get('/todos', (req, res) => {
+//   const queryParams = req.query;
+//   let filteredTodos = todos;
+
+//   if (queryParams.hasOwnProperty('completed')) {
+//     const completedBool = queryParams.completed === 'true' ? true : false;
+//     filteredTodos = _.where(todos, { completed: completedBool });
+//   }
+
+//   if (queryParams.hasOwnProperty('q') && queryParams.q.length > 0) {
+//     filteredTodos = _.filter(filteredTodos, todo => {
+//       const descr = todo.description.toLowerCase();
+//       const paramDescr = queryParams.q.trim().toLowerCase();
+//       return descr.indexOf(paramDescr) > -1;
+//     });
+//   }
+
+//   res.json(filteredTodos);
+// });
 
 // GET todo/:id
 app.get('/todos/:id', (req, res) => {
@@ -72,14 +98,14 @@ app.get('/todos/:id', (req, res) => {
 // POST /todos
 app.post('/todos', (req, res) => {
   const body = _.pick(req.body, 'completed', 'description');
-  const completedIsBool = _.isBoolean(body.completed);
-  const hasDescription = _.isString(body.description);
-  const blankDescription = body.description.trim().length === 0;
-  // let highestId = _.sortBy(todos, 'id')[todos.length - 1].id + 1;
+  // const completedIsBool = _.isBoolean(body.completed);
+  // const hasDescription = _.isString(body.description);
+  // const blankDescription = body.description.trim().length === 0;
+  // // let highestId = _.sortBy(todos, 'id')[todos.length - 1].id + 1;
 
-  if (!completedIsBool || !hasDescription || blankDescription) {
-    return res.status(400).send();
-  }
+  // if (!completedIsBool || !hasDescription || blankDescription) {
+  //   return res.status(400).send();
+  // }
 
   // body.id = highestId;
   body.description = body.description.trim();

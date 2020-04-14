@@ -1,7 +1,7 @@
 const Sequelize = require('sequelize');
 const sequelize = new Sequelize(undefined, undefined, undefined, {
-    'dialect' : 'sqlite',
-    'storage' : __dirname + '/basic-sqlite-database.sqlite'
+    'dialect': 'sqlite',
+    'storage': __dirname + '/basic-sqlite-database.sqlite'
 });
 
 const Todo = sequelize.define('todo', {
