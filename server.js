@@ -129,9 +129,9 @@ app.delete('/todos/:id', (req, res) => {
     }
   }).then(todos => {
     if (todos > 0) {
-      res.send('Todo with ID:' + todoId + ' has been deleted');
+      res.status(204).send();
     } else {
-      res.status(204);
+      res.status(404).send('Nothing deleted because no todo with ID:' + todoId + ' exists');
     }
   }, error => {
     res.status(500).json(
