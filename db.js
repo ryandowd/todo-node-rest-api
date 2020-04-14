@@ -1,7 +1,6 @@
 const Sequelize = require('sequelize');
 const env = process.env.NODE_ENV || 'development';
 let sequelize;
-let db = {};
 
 if (env === 'production') {
     sequelize = new Sequelize(process.env.DATABASE_URL, {
@@ -13,6 +12,8 @@ if (env === 'production') {
         'storage': __dirname + '/data/dev-todo-api.sqlite'
     });
 }
+
+let db = {};
 
 db.todo = sequelize.import(__dirname + '/models/todo.js');
 db.sequelize = sequelize;

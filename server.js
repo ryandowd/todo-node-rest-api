@@ -1,4 +1,5 @@
 const express = require('express');
+const { Op } = require("sequelize");
 const bodyParser = require('body-parser');
 const _ = require('underscore');
 const db = require('./db.js');
@@ -40,8 +41,10 @@ app.get('/todos', (req, res) => {
   }
 
   if (query.hasOwnProperty('q') && query.q.length > 0) {
+    console.log('here');
+    console.log(query.q.trim(), 'query.q.trim()');
     whereObj.description = {
-      $like: '%' + query.q.trim() + '%'
+      [Op.like]: '%' + query.q.trim() + '%'
     }
   }
 
@@ -80,7 +83,7 @@ app.get('/todos', (req, res) => {
 app.get('/todos/:id', (req, res) => {
   const todoId = parseInt(req.params.id);
 
-  db.todo.findById(todoId).then(todo => {
+  db.todo.findByPk(todoId).then(todo => {
     if (!!todo) {
       res.json(todo.toJSON());
     } else {
