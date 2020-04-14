@@ -1,5 +1,6 @@
 const express = require('express');
-const { Op } = require("sequelize");
+const { Op } = require('sequelize');
+const sequelize = require('sequelize');
 const bodyParser = require('body-parser');
 const _ = require('underscore');
 const db = require('./db.js');
@@ -40,12 +41,9 @@ app.get('/todos', (req, res) => {
     whereObj.completed = completedBool;
   }
 
+
   if (query.hasOwnProperty('q') && query.q.length > 0) {
-    console.log('here');
-    console.log(query.q.trim(), 'query.q.trim()');
-    whereObj.description = {
-      [Op.like]: '%' + query.q.trim() + '%'
-    }
+    whereObj.description = sequelize.where(sequelize.fn('LOWER', sequelize.col('description')), 'LIKE', '%' + query.q.trim().toLowerCase() + '%')
   }
 
   db.todo.findAll({ where: whereObj }).then(todos => {
