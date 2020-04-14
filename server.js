@@ -143,42 +143,34 @@ app.delete('/todos/:id', (req, res) => {
 // PUT /todos/:id
 app.put('/todos/:id', (req, res) => {
   const body = _.pick(req.body, 'completed', 'description');
-  const validAttrs = {};
   const hasCompleted = body.hasOwnProperty('completed');
-  const completedIsBool = _.isBoolean(body.completed);
+  const hasDescription = body.hasOwnProperty('description');
   const todoId = parseInt(req.params.id);
-  const matchedTodo = _.findWhere(todos, { id: todoId });
-
-  if (!matchedTodo) {
-    return res.status(404).json({
-      Error: "No matching ID found. You cannot update a TODO that does not exist"
-    });
-  }
+  const attrs = {};
 
   // 'Field: Completed'
-  if (hasCompleted && completedIsBool) {
-    validAttrs.completed = body.completed;
-  } else if (hasCompleted && !completedIsBool) {
-    return res.status(400).json({
-      Error: "'Completed' field needs to be a boolean"
-    });
+  if (hasCompleted) {
+    attrs.completed = body.completed;
   }
-
-  const hasDescription = body.hasOwnProperty('description');
-  const descriptionIsString = _.isString(body.description);
-  const blankDescription = hasDescription && body.description.trim().length === 0;
 
   // 'Field: Description'
-  if (hasDescription && descriptionIsString && !blankDescription) {
-    validAttrs.description = body.description.trim();
-  } else if (blankDescription) {
-    return res.status(400).json({
-      Error: "'Description' field cannot be blank"
-    });
+  if (hasDescription && body.description.length > 0) {
+    attrs.description = body.description.trim();
   }
 
-  _.extend(matchedTodo, validAttrs);
-  res.json(matchedTodo);
+  db.todo.findByPk(todoId).then(todo => {
+    if (todo) {
+      todo.update(attrs).then(todo => {
+        res.json(todo.toJSON());
+      }, error => {
+        res.status(400).json(error);
+      });
+    } else {
+      res.status(404).send();
+    }
+  }, error => {
+    res.status(500).json(error);
+  });
 
 });
 
