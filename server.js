@@ -6,19 +6,19 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 let todos = [
   {
-      "completed": false,
-      "description": "111",
-      "id": 1
+    "completed": false,
+    "description": "111",
+    "id": 1
   },
   {
-      "completed": false,
-      "description": "1232311",
-      "id": 2
+    "completed": false,
+    "description": "1232311",
+    "id": 2
   },
   {
-      "completed": true,
-      "description": "1244432311",
-      "id": 3
+    "completed": true,
+    "description": "1244432311",
+    "id": 3
   }
 ];
 
@@ -37,7 +37,7 @@ app.get('/todos', (req, res) => {
   if (queryParams.hasOwnProperty('completed')) {
     const completedBool = queryParams.completed === 'true' ? true : false;
     filteredTodos = _.where(todos, { completed: completedBool });
-  } 
+  }
 
   if (queryParams.hasOwnProperty('q') && queryParams.q.length > 0) {
     filteredTodos = _.filter(filteredTodos, todo => {
@@ -52,15 +52,21 @@ app.get('/todos', (req, res) => {
 
 // GET todo/:id
 app.get('/todos/:id', (req, res) => {
-  // const matchedTodo = todos.filter( todo =>  parseInt(req.params.id) === todo.id);
   const todoId = parseInt(req.params.id);
-  const matchedTodo = _.findWhere(todos, {id: todoId});
-    
-  if (matchedTodo) {
-    res.json(matchedTodo);
-  } else {
-    res.status(404).send('No todo found with that ID');
-  }
+
+  db.todo.findById(todoId).then(todo => {
+    if (!!todo) {
+      res.json(todo.toJSON());
+    } else {
+      res.status(404).json(
+        { "Error": 'Could not find todo with that ID' }
+      );
+    }
+  }, error => {
+    res.status(500).json(
+      { "Server Error": 'Something is wrong witht the server' }
+    );
+  });
 });
 
 // POST /todos
@@ -89,14 +95,14 @@ app.post('/todos', (req, res) => {
 // DELETE /todos/:id
 app.delete('/todos/:id', (req, res) => {
   const todoId = parseInt(req.params.id);
-  const matchedTodo = _.findWhere(todos, {id: todoId});
-    
+  const matchedTodo = _.findWhere(todos, { id: todoId });
+
   if (matchedTodo) {
     todos = _.without(todos, matchedTodo);
     res.json('Deleted todo with ID: ' + todoId);
   } else {
     res.status(404).json(
-      {"Error":'Could not delete todo, because no todo exists with that ID'}
+      { "Error": 'Could not delete todo, because no todo exists with that ID' }
     );
   }
 });
@@ -108,14 +114,14 @@ app.put('/todos/:id', (req, res) => {
   const hasCompleted = body.hasOwnProperty('completed');
   const completedIsBool = _.isBoolean(body.completed);
   const todoId = parseInt(req.params.id);
-  const matchedTodo = _.findWhere(todos, {id: todoId});
+  const matchedTodo = _.findWhere(todos, { id: todoId });
 
   if (!matchedTodo) {
     return res.status(404).json({
       Error: "No matching ID found. You cannot update a TODO that does not exist"
     });
   }
-  
+
   // 'Field: Completed'
   if (hasCompleted && completedIsBool) {
     validAttrs.completed = body.completed;
