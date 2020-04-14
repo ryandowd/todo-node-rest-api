@@ -122,16 +122,22 @@ app.post('/todos', (req, res) => {
 // DELETE /todos/:id
 app.delete('/todos/:id', (req, res) => {
   const todoId = parseInt(req.params.id);
-  const matchedTodo = _.findWhere(todos, { id: todoId });
 
-  if (matchedTodo) {
-    todos = _.without(todos, matchedTodo);
-    res.json('Deleted todo with ID: ' + todoId);
-  } else {
-    res.status(404).json(
-      { "Error": 'Could not delete todo, because no todo exists with that ID' }
+  db.todo.destroy({
+    where: {
+      id: todoId
+    }
+  }).then(todos => {
+    if (todos > 0) {
+      res.send('Todo with ID:' + todoId + ' has been deleted');
+    } else {
+      res.status(204);
+    }
+  }, error => {
+    res.status(500).json(
+      { "Server Error": 'There was an error with the server' }
     );
-  }
+  });
 });
 
 // PUT /todos/:id
