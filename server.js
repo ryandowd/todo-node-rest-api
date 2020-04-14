@@ -55,28 +55,6 @@ app.get('/todos', (req, res) => {
   });
 });
 
-// OLD GET using underscore
-// // GET /todos?completed=boolean&q=work
-// app.get('/todos', (req, res) => {
-//   const queryParams = req.query;
-//   let filteredTodos = todos;
-
-//   if (queryParams.hasOwnProperty('completed')) {
-//     const completedBool = queryParams.completed === 'true' ? true : false;
-//     filteredTodos = _.where(todos, { completed: completedBool });
-//   }
-
-//   if (queryParams.hasOwnProperty('q') && queryParams.q.length > 0) {
-//     filteredTodos = _.filter(filteredTodos, todo => {
-//       const descr = todo.description.toLowerCase();
-//       const paramDescr = queryParams.q.trim().toLowerCase();
-//       return descr.indexOf(paramDescr) > -1;
-//     });
-//   }
-
-//   res.json(filteredTodos);
-// });
-
 // GET todo/:id
 app.get('/todos/:id', (req, res) => {
   const todoId = parseInt(req.params.id);
@@ -99,21 +77,22 @@ app.get('/todos/:id', (req, res) => {
 // POST /todos
 app.post('/todos', (req, res) => {
   const body = _.pick(req.body, 'completed', 'description');
-  // const completedIsBool = _.isBoolean(body.completed);
-  // const hasDescription = _.isString(body.description);
-  // const blankDescription = body.description.trim().length === 0;
-  // // let highestId = _.sortBy(todos, 'id')[todos.length - 1].id + 1;
-
-  // if (!completedIsBool || !hasDescription || blankDescription) {
-  //   return res.status(400).send();
-  // }
-
-  // body.id = highestId;
   body.description = body.description.trim();
 
   // Send to the DB with sequelize
   db.todo.create(body).then(todo => {
     res.json(todo.toJSON());
+  }, error => {
+    res.status(400).json(error);
+  });
+});
+
+// POST /users
+app.post('/users', (req, res) => {
+  const body = _.pick(req.body, 'email', 'password');
+  db.user.create(body).then(user => {
+    console.log(user, 'user');
+    res.json(user.toJSON());
   }, error => {
     res.status(400).json(error);
   });
