@@ -91,8 +91,7 @@ app.post('/todos', (req, res) => {
 app.post('/users', (req, res) => {
   const body = _.pick(req.body, 'email', 'password');
   db.user.create(body).then(user => {
-    console.log(user, 'user');
-    res.json(user.toJSON());
+    res.json(user.toPublicJSON());
   }, error => {
     res.status(400).json(error);
   });
@@ -153,6 +152,9 @@ app.put('/todos/:id', (req, res) => {
 
 });
 
+// NOTE: Passing the {force:true} object to .sync() forces the DB to recreate (i.e. drop old tables, and start fresh)
+// This is useful if there are changes being made to the DB that need to override/add 
+// to the existing schema/setup. E.g. When adding salted/hashed passwords to the user model. 
 db.sequelize.sync().then(() => {
   app.listen(PORT, () => {
     console.log('Express listening on port ' + PORT + '!');
