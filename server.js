@@ -4,25 +4,9 @@ const sequelize = require('sequelize');
 const bodyParser = require('body-parser');
 const _ = require('underscore');
 const db = require('./db.js');
+const bcrypt = require('bcrypt');
 const app = express();
 const PORT = process.env.PORT || 3000;
-let todos = [
-  {
-    "completed": false,
-    "description": "111",
-    "id": 1
-  },
-  {
-    "completed": false,
-    "description": "1232311",
-    "id": 2
-  },
-  {
-    "completed": true,
-    "description": "1244432311",
-    "id": 3
-  }
-];
 
 app.use(bodyParser.json());
 
@@ -152,10 +136,22 @@ app.put('/todos/:id', (req, res) => {
 
 });
 
+// POST /users/login
+app.post('/users/login', (req, res) => {
+  const body = _.pick(req.body, 'email', 'password');
+  db.user.authenticate(body).then(user => {
+    res.json(user.toPublicJSON());
+  }, error => {
+    res.status(401).json({
+      "Error": "Not authorised"
+    })
+  });
+});
+
 // NOTE: Passing the {force:true} object to .sync() forces the DB to recreate (i.e. drop old tables, and start fresh)
 // This is useful if there are changes being made to the DB that need to override/add 
 // to the existing schema/setup. E.g. When adding salted/hashed passwords to the user model. 
-db.sequelize.sync().then(() => {
+db.sequelize.sync({ force: true }).then(() => {
   app.listen(PORT, () => {
     console.log('Express listening on port ' + PORT + '!');
   });
