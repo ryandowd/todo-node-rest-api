@@ -66,7 +66,11 @@ app.post('/todos', middleware.requireAuthentication, (req, res) => {
 
   // Send to the DB with sequelize
   db.todo.create(body).then(todo => {
-    res.json(todo.toJSON());
+    req.user.addTodo(todo).then(() => {
+      return todo.reload();
+    }).then(todo => {
+      res.json(todo.toJSON());
+    })
   }, error => {
     res.status(400).json(error);
   });
@@ -161,7 +165,9 @@ app.post('/users/login', (req, res) => {
 // NOTE: Passing the {force:true} object to .sync() forces the DB to recreate (i.e. drop old tables, and start fresh)
 // This is useful if there are changes being made to the DB that need to override/add 
 // to the existing schema/setup. E.g. When adding salted/hashed passwords to the user model. 
-db.sequelize.sync({ force: true }).then(() => {
+db.sequelize.sync({
+  force: true
+}).then(() => {
   app.listen(PORT, () => {
     console.log('Express listening on port ' + PORT + '!');
   });
