@@ -1,10 +1,9 @@
 const express = require('express');
-const { Op } = require('sequelize');
 const sequelize = require('sequelize');
 const bodyParser = require('body-parser');
 const _ = require('underscore');
 const db = require('./db.js');
-const bcrypt = require('bcrypt');
+const middleware = require('./middleware.js')(db);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -15,8 +14,10 @@ app.get('/', (req, res) => {
   res.send('TODO API ROOT');
 });
 
+console.log('MIDDLEWARE:', middleware.requireAuthentication);
+
 // GET /todos?completed=boolean&q=work
-app.get('/todos', (req, res) => {
+app.get('/todos', middleware.requireAuthentication, (req, res) => {
   const query = req.query;
   let whereObj = {};
 
@@ -40,7 +41,7 @@ app.get('/todos', (req, res) => {
 });
 
 // GET todo/:id
-app.get('/todos/:id', (req, res) => {
+app.get('/todos/:id', middleware.requireAuthentication, (req, res) => {
   const todoId = parseInt(req.params.id);
 
   db.todo.findByPk(todoId).then(todo => {
@@ -59,7 +60,7 @@ app.get('/todos/:id', (req, res) => {
 });
 
 // POST /todos
-app.post('/todos', (req, res) => {
+app.post('/todos', middleware.requireAuthentication, (req, res) => {
   const body = _.pick(req.body, 'completed', 'description');
   body.description = body.description.trim();
 
@@ -72,7 +73,7 @@ app.post('/todos', (req, res) => {
 });
 
 // DELETE /todos/:id
-app.delete('/todos/:id', (req, res) => {
+app.delete('/todos/:id', middleware.requireAuthentication, (req, res) => {
   const todoId = parseInt(req.params.id);
 
   db.todo.destroy({
@@ -93,7 +94,7 @@ app.delete('/todos/:id', (req, res) => {
 });
 
 // PUT /todos/:id
-app.put('/todos/:id', (req, res) => {
+app.put('/todos/:id', middleware.requireAuthentication, (req, res) => {
   const body = _.pick(req.body, 'completed', 'description');
   const hasCompleted = body.hasOwnProperty('completed');
   const hasDescription = body.hasOwnProperty('description');
@@ -142,7 +143,14 @@ app.post('/users', (req, res) => {
 app.post('/users/login', (req, res) => {
   const body = _.pick(req.body, 'email', 'password');
   db.user.authenticate(body).then(user => {
-    res.json(user.toPublicJSON());
+    const jwToken = user.generateToken('authentication');
+    if (jwToken) {
+      res.header('Auth', jwToken).json(user.toPublicJSON());
+    } else {
+      res.status(401).json({
+        "Error": "Cannot create web token"
+      });
+    }
   }, error => {
     res.status(401).json({
       "Error": "Not authorised"
