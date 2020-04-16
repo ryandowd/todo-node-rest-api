@@ -158,21 +158,33 @@ app.post('/users', (req, res) => {
 // POST /users/login
 app.post('/users/login', (req, res) => {
   const body = _.pick(req.body, 'email', 'password');
+  let userInstance;
+
   db.user.authenticate(body).then(user => {
     const jwToken = user.generateToken('authentication');
-    if (jwToken) {
-      res.header('Auth', jwToken).json(user.toPublicJSON());
-    } else {
-      res.status(401).json({
-        "Error": "Cannot create web token"
-      });
-    }
-  }, error => {
+
+    userInstance = user;
+    return db.token.create({
+      token: jwToken
+    });
+  }).then(tokenInstance => {
+    res.header('Auth', tokenInstance.get('token')).json(userInstance.toPublicJSON());
+  }).catch(error => {
     res.status(401).json({
-      "Error": "Not authorised"
+      "Error": error
     });
   });
+
 });
+
+// DELETE /users/login
+app.delete('/users/login', middleware.requireAuthentication, (req, res) => {
+  req.token.destroy().then(() => {
+    res.status(204).send();
+  }).catch(() => {
+    res.status(500).send();
+  })
+})
 
 // NOTE: Passing the {force:true} object to .sync() forces the DB to recreate (i.e. drop old tables, and start fresh)
 // This is useful if there are changes being made to the DB that need to override/add 
