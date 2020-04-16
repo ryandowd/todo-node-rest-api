@@ -71,16 +71,6 @@ app.post('/todos', (req, res) => {
   });
 });
 
-// POST /users
-app.post('/users', (req, res) => {
-  const body = _.pick(req.body, 'email', 'password');
-  db.user.create(body).then(user => {
-    res.json(user.toPublicJSON());
-  }, error => {
-    res.status(400).json(error);
-  });
-});
-
 // DELETE /todos/:id
 app.delete('/todos/:id', (req, res) => {
   const todoId = parseInt(req.params.id);
@@ -136,6 +126,18 @@ app.put('/todos/:id', (req, res) => {
 
 });
 
+// POST /users
+app.post('/users', (req, res) => {
+  const body = _.pick(req.body, 'email', 'password');
+  db.user.create(body).then(user => {
+    res.json(user.toPublicJSON());
+  }, error => {
+    res.status(401).json({
+      "Error": error
+    });
+  });
+});
+
 // POST /users/login
 app.post('/users/login', (req, res) => {
   const body = _.pick(req.body, 'email', 'password');
@@ -144,7 +146,7 @@ app.post('/users/login', (req, res) => {
   }, error => {
     res.status(401).json({
       "Error": "Not authorised"
-    })
+    });
   });
 });
 
