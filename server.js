@@ -1,39 +1,63 @@
+// Load express so we can use create the server
 const express = require('express');
+// Load the sequelize module so we can use it's methods to query the DB
 const sequelize = require('sequelize');
+// Load bodyParser middleware to parse node requests
 const bodyParser = require('body-parser');
+// Load underscore to use it's utilities
 const _ = require('underscore');
+
+// Load in the DB. The DB file contains all of the DB (and model scheme) setup
 const db = require('./db.js');
+// Load the middleware function and passes it the DB. This middleware has a function which 
+// is used in the CRUD events to authenticiate the user each time a CRUD request is made.
+// We pass it the DB so that it has access to the stored token hashes and other stuff
 const middleware = require('./middleware.js')(db);
+// Then create the express app
 const app = express();
+// Define the ports (use env ports if available - i.e. if this code is running on a non-dev env)
 const PORT = process.env.PORT || 3000;
 
+// I don't know what this line does... more hooking things up? 
 app.use(bodyParser.json());
+
+/*
+ * NOW WE HAVE ALL OF OUR NODE ROUTE ENDPOINTS
+ */
 
 // GET /index
 app.get('/', (req, res) => {
   res.send('TODO API ROOT');
 });
 
-console.log('MIDDLEWARE:', middleware.requireAuthentication);
-
 // GET /todos?completed=boolean&q=work
+// NOTE: We also call the 'middleware.requireAuthentication' func to FIRST
+// check that the user has a valid token before doing the action
 app.get('/todos', middleware.requireAuthentication, (req, res) => {
   const query = req.query;
+  // The 'whereObj' is just an obj we pass to the sequelize method findAll(). 
+  // It is used to filter out only the instances 'where' = match etc. 
   let whereObj = {
     userId: req.user.get('id')
   };
 
+  // IF the request has a key of 'completed' 
   if (query.hasOwnProperty('completed')) {
+    // Then update the 'where' match obj
     const completedBool = query.completed === 'true' ? true : false;
     whereObj.completed = completedBool;
   }
 
-
+  // IF the reques has a key of 'q'
   if (query.hasOwnProperty('q') && query.q.length > 0) {
+    // Then update the whereObj. NOTE: we pass it a more complex custom .where() command so that we can 
+    // contruct a more specific query. E.g, we use the 'LIKE' %word% query so we can do a non-exact string search
     whereObj.description = sequelize.where(sequelize.fn('LOWER', sequelize.col('description')), 'LIKE', '%' + query.q.trim().toLowerCase() + '%')
   }
 
+  // We then use the sequelize method 'findAll()' which is a promise
   db.todo.findAll({ where: whereObj }).then(todos => {
+    // If success, then show the todos
     res.json(todos);
   }, error => {
     res.status(500).json(
@@ -42,7 +66,7 @@ app.get('/todos', middleware.requireAuthentication, (req, res) => {
   });
 });
 
-// GET todo/:id
+// GET todo/:id - This returns only 1 todo by using the ID that was passed
 app.get('/todos/:id', middleware.requireAuthentication, (req, res) => {
   const todoId = parseInt(req.params.id);
   db.todo.findOne({
@@ -65,7 +89,7 @@ app.get('/todos/:id', middleware.requireAuthentication, (req, res) => {
   });
 });
 
-// POST /todos
+// POST /todos - This is for creating new todos
 app.post('/todos', middleware.requireAuthentication, (req, res) => {
   const body = _.pick(req.body, 'completed', 'description');
   body.description = body.description.trim();
@@ -73,9 +97,11 @@ app.post('/todos', middleware.requireAuthentication, (req, res) => {
   // Send to the DB with sequelize
   db.todo.create(body).then(todo => {
     req.user.addTodo(todo).then(() => {
+      // We use 'reload' so that the todo will be updated with the 
+      // updated data
       return todo.reload();
     }).then(todo => {
-      res.json(todo.toJSON());
+      res.json(todo.toJSON()); // Then we show it
     })
   }, error => {
     res.status(400).json(error);
@@ -86,6 +112,7 @@ app.post('/todos', middleware.requireAuthentication, (req, res) => {
 app.delete('/todos/:id', middleware.requireAuthentication, (req, res) => {
   const todoId = parseInt(req.params.id);
 
+  // Find the TODO by ID and destroy it from the DB
   db.todo.destroy({
     where: {
       id: todoId,
@@ -104,9 +131,9 @@ app.delete('/todos/:id', middleware.requireAuthentication, (req, res) => {
   });
 });
 
-// PUT /todos/:id
+// PUT /todos/:id - This updates the TODO with the matching ID
 app.put('/todos/:id', middleware.requireAuthentication, (req, res) => {
-  const body = _.pick(req.body, 'completed', 'description');
+  const body = _.pick(req.body, 'completed', 'description'); // Filter results
   const hasCompleted = body.hasOwnProperty('completed');
   const hasDescription = body.hasOwnProperty('description');
   const todoId = parseInt(req.params.id);
@@ -147,7 +174,7 @@ app.put('/todos/:id', middleware.requireAuthentication, (req, res) => {
 app.post('/users', (req, res) => {
   const body = _.pick(req.body, 'email', 'password');
   db.user.create(body).then(user => {
-    res.json(user.toPublicJSON());
+    res.json(user.toPublicJSON()); // Uses instance-based func to filter out passwords etc
   }, error => {
     res.status(401).json({
       "Error": error
@@ -192,6 +219,7 @@ app.delete('/users/login', middleware.requireAuthentication, (req, res) => {
 db.sequelize.sync({
   force: true
 }).then(() => {
+  // Tells the app to listen to the port for any changes
   app.listen(PORT, () => {
     console.log('Express listening on port ' + PORT + '!');
   });
